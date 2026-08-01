@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import pandas as pd
 import joblib
+import os
 
 app = Flask(__name__)
 CORS(app)
@@ -44,37 +45,39 @@ feature_columns = [
     "diet_quality_score"
 ]
 
-
-
-@app.route('/',methods=['GET'])
+@app.route("/", methods=["GET"])
 def welcome():
-    return "Welcome"
+    return "Heart Disease Prediction API is Running 🚀"
 
-
-
-@app.route('/predict',methods=['POST'])
+@app.route("/predict", methods=["POST"])
 def predict():
     data = request.get_json(force=True)
+
     df = pd.DataFrame([data])
-    
+
+    # Encoding
     df["sex"] = le_sex.transform(df["sex"])
     df["family_history"] = le_family.transform(df["family_history"])
     df["smoker_status"] = le_smoker.transform(df["smoker_status"])
     df["wearable_owner"] = le_wearable.transform(df["wearable_owner"])
     df["chest_pain_type"] = le_chest.transform(df["chest_pain_type"])
     df["exercise_induced_angina"] = df["exercise_induced_angina"].astype(int)
-    
-    
+
+    # Feature order
+    df = df[feature_columns]
+
+    # Prediction
     prediction = model.predict(df)[0]
-    problety=model.predict_proba(df)[0]
-    
+    probability = model.predict_proba(df)[0]
+
     confidence = round(max(probability) * 100, 2)
-    
+
+    result = "High Risk" if prediction == 1 else "Low Risk"
+
     return jsonify({
-    "prediction": result,
-    "confidence": confidence
+        "prediction": result,
+        "confidence": confidence
     })
-import os
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
